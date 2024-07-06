@@ -2,15 +2,19 @@ import asyncio
 import discord.flags
 from discord.ext import commands
 import requests
-from functions import convert_to_cest, fetch_matches
+
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import pytz
 
 load_dotenv()
 
+print(f'BOT_TOKEN: {os.getenv("BOT_TOKEN")}')
+print(f'FOOTBALL_API_KEY: {os.getenv("FOOTBALL_API_KEY")}')
+
 FOOTBALL_URL = "https://api.football-data.org/v4/"
-BOT_TOKEN = os.getenv("DISCORD_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 LIVE_SCORE_KEY = os.getenv("API_KEY")
 
 intents = discord.Intents.default()
@@ -83,6 +87,29 @@ async def show_today_matches(ctx):
     else:
         await ctx.send("No matches found for today.")
 
+
+def convert_to_cest(utc_time_str):
+    CEST = pytz.timezone('Europe/Berlin')
+    utc_time = datetime.fromisoformat(utc_time_str.replace('Z', '+00:00'))
+    cest_time = utc_time.astimezone(CEST)
+    return cest_time.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+
+def fetch_matches():
+    url = f'{FOOTBALL_URL}/matches'
+
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code == 200:
+        matches = response.json().get('matches', [])
+        if matches:
+            return matches
+        else:
+            print("No matches found in the response data.")
+            return None
+    else:
+        print(f"Failed to fetch matches. Status code: {response.status_code}")
+        return None
 
 async def main():
     async with bot:

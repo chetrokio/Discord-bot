@@ -10,8 +10,6 @@ import pytz
 
 load_dotenv()
 
-print(f'BOT_TOKEN: {os.getenv("BOT_TOKEN")}')
-print(f'FOOTBALL_API_KEY: {os.getenv("FOOTBALL_API_KEY")}')
 
 FOOTBALL_URL = "https://api.football-data.org/v4/"
 BOT_TOKEN = os.getenv("BOT_TOKEN")

@@ -109,6 +109,7 @@ def fetch_matches():
         print(f"Failed to fetch matches. Status code: {response.status_code}")
         return None
 
+
 async def main():
     async with bot:
         await bot.start(BOT_TOKEN)

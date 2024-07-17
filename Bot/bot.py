@@ -2,11 +2,9 @@ import asyncio
 import discord.flags
 from discord.ext import commands
 import requests
-
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
-import pytz
+from Utils.functions import convert_to_cest, fetch_matches, check_league
 
 load_dotenv()
 
@@ -34,7 +32,7 @@ async def hello(ctx):
     await ctx.send("Hello!")
 
 
-@bot.command(name="livescore")
+@bot.command(name="liveresults")
 async def live_score_ec(ctx, competition):
 
     football_url = f"{FOOTBALL_URL}/matches"
@@ -78,36 +76,35 @@ async def show_today_matches(ctx):
             away_team = match['awayTeam']['name']
             match_time = match['utcDate']
             match_time_cest = convert_to_cest(match_time)
-            embed.add_field(name=f"{home_team} vs {away_team}",
-                            value=f"Competition: {competition}\n Time (UTC): {match_time_cest}",
+            competition_value = check_league(match['competition']['code']) + f" {competition}\n {match_time_cest}"
+            embed.add_field(name=f" :soccer: {home_team} vs {away_team} :soccer: ".center(20),
+                            value=competition_value.center(20),
                             inline=False)
         await ctx.send(embed=embed)
     else:
         await ctx.send("No matches found for today.")
 
 
-def convert_to_cest(utc_time_str):
-    CEST = pytz.timezone('Europe/Berlin')
-    utc_time = datetime.fromisoformat(utc_time_str.replace('Z', '+00:00'))
-    cest_time = utc_time.astimezone(CEST)
-    return cest_time.strftime('%Y-%m-%d %H:%M:%S %Z%z')
-
-
-def fetch_matches():
-    url = f'{FOOTBALL_URL}/matches'
-
-    response = requests.get(url, headers=HEADERS)
-
-    if response.status_code == 200:
-        matches = response.json().get('matches', [])
-        if matches:
-            return matches
-        else:
-            print("No matches found in the response data.")
-            return None
+@bot.command(name='checkmatchday')
+async def show_matches(ctx, day):
+    matches = fetch_matches(day)
+    if matches:
+        embed = discord.Embed(title=f"Matches on {day}")
+        for match in matches:
+            competition = match["competition"]["name"]
+            home_team = match["homeTeam"]["name"]
+            away_team = match["awayTeam"]["name"]
+            match_time = match["utcDate"]
+            match_time_cest = convert_to_cest(match_time)
+            competition_value = check_league(match["competition"]["code"]) + f" {competition}\n {match_time_cest}"
+            embed.add_field(name=f":soccer: {home_team} vs {away_team} :soccer:".center(20),
+                            value=competition_value)
+        await ctx.send(embed=embed)
     else:
-        print(f"Failed to fetch matches. Status code: {response.status_code}")
-        return None
+        await ctx.send(f"No matches on {day}")
+
+
+
 
 
 async def main():

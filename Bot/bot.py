@@ -1,13 +1,16 @@
 import asyncio
+import sqlite3
 import discord.flags
 from discord.ext import commands
 import requests
 from dotenv import load_dotenv
 import os
-from Utils.functions import convert_to_cest, fetch_matches, check_league
+from DB.db_operations import insert_user_preference, change_club_preference
+from Utils.utils import convert_to_cest, fetch_matches, check_league
+
 
 load_dotenv()
-
+DATABASE_FILE = "DB/bot_database.db"
 
 FOOTBALL_URL = "https://api.football-data.org/v4/"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -25,11 +28,6 @@ HEADERS = {
 @bot.event
 async def on_ready():
     print(f"Hello! How can i help you today?")
-
-
-@bot.command()
-async def hello(ctx):
-    await ctx.send("Hello!")
 
 
 @bot.command(name="liveresults")
@@ -104,7 +102,60 @@ async def show_matches(ctx, day):
         await ctx.send(f"No matches on {day}")
 
 
+@bot.command(name="follow")
+async def follow_club(ctx,*, club):
+    user_id = ctx.author.id
+    followed_club = club
 
+    try:
+        insert_user_preference(user_id, followed_club)
+        await ctx.send(f"{ctx.author.mention}, you are now following {followed_club}.")
+    except sqlite3.IntegrityError:
+        await ctx.send(f"{ctx.author.mention}, it seems that you are already following {followed_club}")
+    except Exception as e:
+        await ctx.send(f"An error has occurred {e}")
+        print(e)
+
+
+@bot.command
+async def followed_team_playing_today():
+    await discord.send("Waiting for implementation")
+
+
+@bot.command(name="nextmatch")
+async def check_next_match(ctx, team=""):
+    await ctx.send("Waiting for implementation")
+
+
+@bot.command(name="followedclubs")
+async def followed_clubs(ctx):
+    await ctx.send("Waiting for implementation")
+
+
+@bot.command(name="changeclub")
+async def change_club(ctx, old_club, new_club):
+    user_id = ctx.author.id
+    try:
+        change_club_preference(user_id, old_club, new_club)
+        await ctx.send(f"{ctx.author.mention} your followed club has been changed from {old_club} to {new_club}")
+    except Exception as e:
+        await ctx.send(f"An error has occurred as {e}")
+        print(e)
+
+
+@bot.command(name="deleteclub")
+async def delete_club(ctx, club):
+    await ctx.send("Waiting for implementation")
+
+
+@bot.command(name="coverage")
+async def coverage(ctx):
+    await ctx.send("Waiting for implementation")
+
+
+@bot.command(name="help")
+async def help_command(ctx):
+    await ctx.send("Waiting for implementation")
 
 
 async def main():

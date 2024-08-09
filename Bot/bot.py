@@ -1,12 +1,14 @@
 import asyncio
 import sqlite3
 import discord.flags
-from discord.ext import commands
+from discord.ext import commands, tasks
 import requests
 from dotenv import load_dotenv
 import os
-from DB.db_operations import insert_user_preference, change_club_preference
-from Utils.utils import convert_to_cest, fetch_matches, check_league
+from DB.db_operations import insert_user_preference, change_club_preference, delete_club_preference, \
+    fetch_user_preferences, get_all_subscribed_users, show_coverage
+from Utils.utils import convert_to_cest, fetch_matches, check_league, schedule_task, fetch_today_matches_by_club_name
+from datetime import time
 
 
 load_dotenv()
@@ -15,6 +17,7 @@ DATABASE_FILE = "DB/bot_database.db"
 FOOTBALL_URL = "https://api.football-data.org/v4/"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 LIVE_SCORE_KEY = os.getenv("API_KEY")
+CHANNEL_ID = 1255183609728340078  # Replace with your channel ID
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -28,6 +31,7 @@ HEADERS = {
 @bot.event
 async def on_ready():
     print(f"Hello! How can i help you today?")
+    await schedule_task(followed_team_playing_today, time(13, 0))
 
 
 @bot.command(name="liveresults")
@@ -117,9 +121,28 @@ async def follow_club(ctx,*, club):
         print(e)
 
 
-@bot.command
+@tasks.loop(hours=24)
 async def followed_team_playing_today():
-    await discord.send("Waiting for implementation")
+    channel = bot.get_channel(CHANNEL_ID)
+
+    user_ids = get_all_subscribed_users()
+
+    if not user_ids:
+        if channel:
+            await channel.send("No users found in the database")
+        else:
+            print("Channel not found")
+        return
+
+    for user_id in user_ids:
+        user = bot.fetch_user(user_id)
+        if user:
+            user_clubs = fetch_user_preferences(user_id)
+            for club_tuple in user_clubs:
+                club = club_tuple[0]
+                matches = fetch_today_matches_by_club_name(club)
+                if matches:
+                    await user.send(f"{user.mention}, {club} has a match today: {matches}")
 
 
 @bot.command(name="nextmatch")
@@ -129,7 +152,16 @@ async def check_next_match(ctx, team=""):
 
 @bot.command(name="followedclubs")
 async def followed_clubs(ctx):
-    await ctx.send("Waiting for implementation")
+    user_id = ctx.author.id
+    try:
+        user_clubs = ", ".join(fetch_user_preferences(user_id))
+        if user_clubs:
+            await ctx.send(f"{ctx.author.mention} here is the list of your followed club/s "
+                           f"{user_clubs}")
+        else:
+            await ctx.send(f"{ctx.author.mention}, you currently aren't following any clubs")
+    except Exception as e:
+        await ctx.send(f"An error has occurred as {e}")
 
 
 @bot.command(name="changeclub")
@@ -145,12 +177,22 @@ async def change_club(ctx, old_club, new_club):
 
 @bot.command(name="deleteclub")
 async def delete_club(ctx, club):
-    await ctx.send("Waiting for implementation")
+    user_id = ctx.author.id
+    try:
+        delete_club_preference(user_id, club)
+        await ctx.send(f"{ctx.author.mention},you have stopped following {club}")
+    except Exception as e:
+        await ctx.send(f"An error has occurred as {e}")
+        print(e)
 
 
 @bot.command(name="coverage")
 async def coverage(ctx):
-    await ctx.send("Waiting for implementation")
+    league_names = show_coverage()
+    if league_names:
+        await ctx.send("\n".join(league_names))
+    else:
+        await ctx.send("No leagues found in the database")
 
 
 @bot.command(name="help")

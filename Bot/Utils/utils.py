@@ -1,5 +1,7 @@
+import asyncio
+
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 import os
@@ -12,8 +14,7 @@ HEADERS = {
     "X-Auth-Token": f"{LIVE_SCORE_KEY}"
 }
 
-times = {"timeCEST": pytz.timezone('Europe/Berlin'),
-}
+times = {"timeCEST": pytz.timezone('Europe/Berlin'),}
 
 
 def convert_to_cest(utc_time_str):
@@ -42,6 +43,44 @@ def fetch_matches(day=""):
     else:
         print(f"Failed to fetch matches. Status code: {response.status_code}")
         return None
+
+
+async def schedule_task(task, target_time):
+    now = datetime.now(times["timeCEST"])
+    target_time_today = datetime.combine(now.date(), target_time, tzinfo=times["timeCEST"])
+    if now >= target_time_today:
+        target_time_today += timedelta(days=1)
+    delay = (target_time_today - now).total_seconds()
+    await asyncio.sleep(delay)
+    task.start()
+
+
+def fetch_today_matches_by_club_name(club_name):
+    today = datetime.now(times["timeCEST"]).strftime("%Y-%m-%d")
+    football_url = f"{FOOTBALL_URL}/matches"
+    params = {
+        "dateFrom": today,
+        "dateTo": today,
+        "status": "SCHEDULED"
+    }
+    response = requests.get(football_url, headers=HEADERS, params=params)
+    data = response.json()
+
+    if response.status_code == 200:
+        matches = [
+            {
+                "competition": match["competition"]["name"],
+                "home_team": match["homeTeam"]["name"],
+                "away_team": match["awayTeam"]["name"],
+                "utcDate": match["utcDate"],
+            }
+            for match in data.get("matches", [])
+            if club_name.lower() in [match["homeTeam"]["name"].lower(), match["awayTeam"]["name"].lower()]
+        ]
+        return matches
+    else:
+        print(f"Error fetching matches: {response.status_code}")
+        return []
 
 
 def check_league(match_code):

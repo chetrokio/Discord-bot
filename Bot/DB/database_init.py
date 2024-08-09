@@ -1,6 +1,6 @@
 import sqlite3
 
-DATABASE_FILE = "DB/bot_database.db"
+DATABASE_FILE = "bot_database.db"
 
 
 def init_db():
@@ -11,7 +11,8 @@ def init_db():
         c.execute('''
         CREATE TABLE IF NOT EXISTS user_preferences (
             user_id INTEGER PRIMARY KEY,
-            followed_club TEXT
+            followed_club TEXT,
+            notification BOOLEAN
         )
         ''')
 

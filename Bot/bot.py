@@ -112,9 +112,9 @@ async def follow_club(ctx, *, club):
 
     try:
         db.insert_user_preference(user_id, followed_club)
-        await ctx.send(f"{ctx.author.mention}, you are now following {followed_club}.")
+        await ctx.send(f"{ctx.author.mention}, you are now following **{followed_club}**.")
     except sqlite3.IntegrityError:
-        await ctx.send(f"{ctx.author.mention}, it seems that you are already following {followed_club}")
+        await ctx.send(f"{ctx.author.mention}, it seems that you are already following **{followed_club}**")
     except Exception as e:
         await ctx.send(f"An error has occurred {e}")
         print(e)
@@ -156,7 +156,7 @@ async def followed_clubs(ctx):
         user_clubs = ", ".join(db.fetch_user_preferences(user_id))
         if user_clubs:
             await ctx.send(f"{ctx.author.mention} here is the list of your followed club/s "
-                           f"{user_clubs}")
+                           f"**{user_clubs}**")
         else:
             await ctx.send(f"{ctx.author.mention}, you currently aren't following any clubs")
     except Exception as e:
@@ -168,7 +168,7 @@ async def change_club(ctx, old_club, new_club):
     user_id = ctx.author.id
     try:
         db.change_club_preference(user_id, old_club, new_club)
-        await ctx.send(f"{ctx.author.mention} your followed club has been changed from {old_club} to {new_club}")
+        await ctx.send(f"{ctx.author.mention} your followed club has been changed from **{old_club}** to **{new_club}**")
     except Exception as e:
         await ctx.send(f"An error has occurred as {e}")
         print(e)
@@ -179,7 +179,27 @@ async def delete_club(ctx, club):
     user_id = ctx.author.id
     try:
         db.delete_club_preference(user_id, club)
-        await ctx.send(f"{ctx.author.mention},you have stopped following {club}")
+        await ctx.send(f"{ctx.author.mention},you have stopped following **{club}**")
+    except Exception as e:
+        await ctx.send(f"An error has occurred as {e}")
+        print(e)
+
+
+@bot.command(name="notification")
+async def notification(ctx, command, team=""):
+    user_id = ctx.author.id
+    if command.lower() not in ["on", "off"]:
+        await ctx.send("Invalid command. Please use 'on' or 'off'")
+
+    command_bool = command.lower() == "on"
+
+    try:
+        db.set_notification(user_id, command_bool, team)
+        if team:
+            await ctx.send(f"{ctx.author.mention}, you have successfully turned notifications **{command}** for **{team}**")
+        else:
+            await ctx.send(f"{ctx.author.mention}, you have successfully turned notifications **{command}**"
+                           f"for all your followed teams.")
     except Exception as e:
         await ctx.send(f"An error has occurred as {e}")
         print(e)
@@ -194,11 +214,11 @@ async def coverage(ctx):
         await ctx.send("No leagues found in the database")
 
 
-@bot.command(name="help")
+@bot.command(name="commands")
 async def help_command(ctx):
     commands_name, description = db.fetch_all_help_commands()
     if commands_name and description:
-        help_text = "\n".join(f"{cmd}: {desc}" for cmd, desc in zip(commands_name, description))
+        help_text = "\n".join(f"**{cmd}**: {desc}" for cmd, desc in zip(commands_name, description))
         await ctx.send(f"{help_text}")
     else:
         await ctx.send("No help commands found")

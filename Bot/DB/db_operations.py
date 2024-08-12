@@ -16,10 +16,11 @@ def insert_user_preference(user_id, followed_club):
 def fetch_user_preferences(user_id):
     conn = sqlite3.connect(DATABASE_FILE)
     c = conn.cursor()
-    c.execute('SELECT followed_clubs FROM user_prefereneces WHERE user_id = ?', (user_id,))
+    c.execute('SELECT followed_club FROM user_preferences WHERE user_id = ?', (user_id,))
     rows = c.fetchall()
+    clubs = [row[0] for row in rows]
     conn.close()
-    return rows
+    return clubs
 
 
 def change_club_preference(user_id, old_club, new_club):
@@ -63,6 +64,27 @@ def get_all_subscribed_users():
     c.execute('''SELECT DISTINCT user_id FROM user_preferences''')
     user_ids = [row[0] for row in c.fetchall()]
     return user_ids
+
+
+def set_notification(id, command, team=""):
+    conn = sqlite3.connect(DATABASE_FILE)
+    c = conn.cursor()
+    try:
+        if team:
+            c.execute('''UPDATE user_preferences
+                             SET notification = ?
+                             WHERE followed_club = ? AND user_id = ?''',
+                      (command, team, id))
+        else:
+            c.execute('''UPDATE user_preferences
+                         SET notification = ?
+                         WHERE user_id = ?''',
+                      (command, id))
+        conn.commit()
+    except Exception as e:
+        print(f"An error has occurred: {e}")
+    finally:
+        conn.close()
 
 
 def show_coverage():

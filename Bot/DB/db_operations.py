@@ -44,7 +44,7 @@ def delete_club_preference(user_id, club):
     try:
         conn = sqlite3.connect(DATABASE_FILE)
         c = conn.cursor()
-        c.execute('''DELETE user_preferences
+        c.execute('''DELETE FROM user_preferences
                      WHERE user_id = ? AND followed_club = ?''',
                      (user_id, club))
         conn.commit()
@@ -76,4 +76,11 @@ def show_coverage():
 
 
 def fetch_all_help_commands():
-    pass
+    conn = sqlite3.connect(DATABASE_FILE)
+    c = conn.cursor()
+    c.execute('''SELECT command_name, description FROM commands''')
+    rows = c.fetchall()
+    conn.close()
+    commands = [row[0] for row in rows]
+    descriptions = [row[1] for row in rows]
+    return commands, descriptions

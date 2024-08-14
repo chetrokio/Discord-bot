@@ -13,6 +13,7 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             followed_club TEXT,
             notification BOOLEAN
+            PRIMARY KEY (user_id, followed_club)
         )
         ''')
 

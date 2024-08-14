@@ -8,6 +8,7 @@ import os
 from DB import db_operations as db
 from Utils import utils as ut
 from datetime import time
+import logging
 
 
 load_dotenv()
@@ -19,8 +20,11 @@ LIVE_SCORE_KEY = os.getenv("API_KEY")
 CHANNEL_ID = 1255183609728340078
 
 intents = discord.Intents.default()
+intents.members = True
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
+logging.basicConfig(level=logging.INFO, filename="bot.log", filemode="a",
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 HEADERS = {
     "X-Auth-Token": f"{LIVE_SCORE_KEY}"
@@ -30,40 +34,106 @@ HEADERS = {
 @bot.event
 async def on_ready():
     print(f"Hello! How can i help you today?")
-    await ut.schedule_task(followed_team_playing_today, time(13, 0))
+    await ut.schedule_task(followed_team_playing_today, time(14, 10))
+
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    role_channel_id = 1273247635540807782
+    role_name = "football"
+    if payload.channel_id != role_channel_id:
+        logging.error("Wrong channel id")
+        return
+    if str(payload.emoji) != "⚽":
+        logging.error("wrong emoji reaction")
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    if guild is None:
+        logging.error(f"Guild with ID {payload.guild_id} not found.")
+        return
+    role = discord.utils.get(guild.roles, name=role_name)
+    if role is None:
+        logging.error(f"Role '{role_name}' not found.")
+        return
+    member = guild.get_member(payload.user_id)
+    if member is None:
+        logging.error(f"Member with ID {payload.user_id} not found.")
+        return
+
+    if role in member.roles:
+        return
+
+    try:
+        await member.add_roles(role)
+        channel = bot.get_channel(CHANNEL_ID)
+        await channel.send(f"Welcome {member.mention} to the football club!")
+    except discord.Forbidden:
+        logging.error("I do not have permission to assign this role or send messages.")
+    except Exception as e:
+        logging.exception(f"An error occurred: {e}")
+
+
+@tasks.loop(hours=24)
+async def followed_team_playing_today():
+    channel = bot.get_channel(CHANNEL_ID)
+
+    user_ids = db.get_all_subscribed_users()
+
+    if not user_ids:
+        if channel:
+            await channel.send("No users found in the database")
+        else:
+            print("Channel not found")
+        return
+
+    for user_id in user_ids:
+        user = bot.fetch_user(user_id)
+        if user:
+            user_clubs = db.fetch_user_preferences(user_id)
+            for club_tuple in user_clubs:
+                club = club_tuple[0]
+                matches = ut.fetch_today_matches_by_club_name(club)
+                if matches:
+                    await user.send(f"{user.mention}, {club} has a match today: {matches}")
 
 
 @bot.command(name="liveresults")
-async def live_score_ec(ctx, competition):
-
-    football_url = f"{FOOTBALL_URL}/matches"
-
-    params = {
-        "competitions": competition,
-        "status": "LIVE"
-    }
-
-    response = requests.get(football_url, headers=HEADERS, params=params)
-    data = response.json()
-
-    if response.status_code == 200:
-        if "matches" in data:
-            live_games = data["matches"]
-
-            if live_games:
-                for game in live_games:
-                    home_team = game["home_team"]["name"]
-                    away_team = game["away_team"]["name"]
-                    home_score = game["score"]["fullTime"]["home"]
-                    away_score = game["score"]["fullTime"]["away"]
-
-                    await ctx.send(f"LIVE: {home_team} ( {home_score} ) - ( {away_score} ) {away_team}")
-            else:
-                await ctx.send(f"No matches are currently live")
-
+async def live_score(ctx, competition=None):
+    if competition:
+        params = {
+            "competitions": competition,
+            "status": "LIVE"
+        }
     else:
-        print(f"Error fetching live scores!")
-        await ctx.send(f"Error fetching live scores!")
+        params = {"status": "LIVE"}
+
+    try:
+        football_url = f"{FOOTBALL_URL}/matches"
+        response = requests.get(football_url, headers=HEADERS, params=params)
+        data = response.json()
+
+        if response.status_code == 200:
+            if "matches" in data:
+                live_games = data["matches"]
+                if live_games:
+                    for game in live_games:
+                        home_team = game["home_team"]["name"]
+                        away_team = game["away_team"]["name"]
+                        home_score = game["score"]["fullTime"]["home"]
+                        away_score = game["score"]["fullTime"]["away"]
+
+                        await ctx.send(f"LIVE: {home_team} ( {home_score} ) - ( {away_score} ) {away_team}")
+                else:
+                    await ctx.send(f"No matches are currently live")
+            else:
+                await ctx.send(f"No matches found")
+        else:
+            logging.error(f"Failed to fetch live scores: {response.status_code} - {response.text}")
+            await ctx.send(f"Error fetching live scores!")
+    except Exception as e:
+        logging.exception(f"Exception in 'liveresults' command: {e}")
+        await ctx.send("An error occurred while fetching live results. Please try again later.")
 
 
 @bot.command(name='todaymatches')
@@ -105,6 +175,19 @@ async def show_matches(ctx, day):
         await ctx.send(f"No matches on {day}")
 
 
+@bot.command(name="leaguetable")
+async def league_table(ctx, league):
+    if not league:
+        ctx.send("You must provide league")
+    params = {
+        "competition": league
+    }
+    try:
+        pass
+    except Exception as e:
+        pass
+
+
 @bot.command(name="follow")
 async def follow_club(ctx, *, club):
     user_id = ctx.author.id
@@ -117,31 +200,10 @@ async def follow_club(ctx, *, club):
         await ctx.send(f"{ctx.author.mention}, it seems that you are already following **{followed_club}**")
     except Exception as e:
         await ctx.send(f"An error has occurred {e}")
-        print(e)
+        logging.exception(f"{e}")
 
 
-@tasks.loop(hours=24)
-async def followed_team_playing_today():
-    channel = bot.get_channel(CHANNEL_ID)
 
-    user_ids = db.get_all_subscribed_users()
-
-    if not user_ids:
-        if channel:
-            await channel.send("No users found in the database")
-        else:
-            print("Channel not found")
-        return
-
-    for user_id in user_ids:
-        user = bot.fetch_user(user_id)
-        if user:
-            user_clubs = db.fetch_user_preferences(user_id)
-            for club_tuple in user_clubs:
-                club = club_tuple[0]
-                matches = ut.fetch_today_matches_by_club_name(club)
-                if matches:
-                    await user.send(f"{user.mention}, {club} has a match today: {matches}")
 
 
 @bot.command(name="nextmatch")
@@ -161,6 +223,7 @@ async def followed_clubs(ctx):
             await ctx.send(f"{ctx.author.mention}, you currently aren't following any clubs")
     except Exception as e:
         await ctx.send(f"An error has occurred as {e}")
+        logging.exception(e)
 
 
 @bot.command(name="changeclub")
@@ -198,7 +261,7 @@ async def notification(ctx, command, team=""):
         if team:
             await ctx.send(f"{ctx.author.mention}, you have successfully turned notifications **{command}** for **{team}**")
         else:
-            await ctx.send(f"{ctx.author.mention}, you have successfully turned notifications **{command}**"
+            await ctx.send(f"{ctx.author.mention}, you have successfully turned notifications **{command}** "
                            f"for all your followed teams.")
     except Exception as e:
         await ctx.send(f"An error has occurred as {e}")

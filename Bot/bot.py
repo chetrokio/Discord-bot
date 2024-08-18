@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 from DB import db_operations as db
 from Utils import utils as ut
-from datetime import time
+from datetime import time, date
 import logging
 
 
@@ -34,7 +34,7 @@ HEADERS = {
 @bot.event
 async def on_ready():
     print(f"Hello! How can i help you today?")
-    await ut.schedule_task(followed_team_playing_today, time(14, 10))
+    await ut.schedule_task(followed_team_playing_today, time(15, 00))
 
 
 @bot.event
@@ -134,6 +134,51 @@ async def live_score(ctx, competition=None):
     except Exception as e:
         logging.exception(f"Exception in 'liveresults' command: {e}")
         await ctx.send("An error occurred while fetching live results. Please try again later.")
+
+
+@bot.command(name="todayresults")
+async def today_results(ctx, competition=None):
+    params = {
+        "status": "FINISHED"
+    }
+
+    if competition:
+        params["competitions"] = competition
+
+    try:
+        response = requests.get(f"{FOOTBALL_URL}/matches", headers=HEADERS, params=params)
+        data = response.json()
+
+        if response.status_code == 200:
+            matches = data.get("matches", [])
+
+            if not matches:
+                await ctx.send(f"No finished matches found for today.")
+                return
+
+            embed = discord.Embed(title="Today's Finished Matches", color=0x1F8B4C)
+            if competition:
+                embed.description = f"Competition: {competition}"
+
+            for match in matches[:25]:
+                home_team = match["homeTeam"]["name"]
+                away_team = match["awayTeam"]["name"]
+                home_score = match["score"]["fullTime"]["home"]
+                away_score = match["score"]["fullTime"]["away"]
+                home_team_short = (home_team[:12] + '...') if len(home_team) > 12 else home_team
+                away_team_short = (away_team[:12] + '...') if len(away_team) > 12 else away_team
+
+                match_result = f"{home_team_short} {home_score} - {away_score} {away_team_short}"
+                embed.add_field(name=match_result[:25], value=f"Time: {match['utcDate'][:19]}", inline=False)
+
+            await ctx.send(embed=embed)
+
+        else:
+            await ctx.send(f"Error fetching results: {data.get('message', 'Unknown error')}")
+
+    except Exception as e:
+        logging.exception(f"An error occurred while fetching today's results: {e}")
+        await ctx.send("An error occurred while trying to fetch results. Please try again later.")
 
 
 @bot.command(name='todaymatches')

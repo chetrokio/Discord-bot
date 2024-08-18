@@ -59,8 +59,6 @@ def fetch_today_matches_by_club_name(club_name):
     today = datetime.now(times["timeCEST"]).strftime("%Y-%m-%d")
     football_url = f"{FOOTBALL_URL}/matches"
     params = {
-        "dateFrom": today,
-        "dateTo": today,
         "status": "SCHEDULED"
     }
     response = requests.get(football_url, headers=HEADERS, params=params)

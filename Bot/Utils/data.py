@@ -1,0 +1,27 @@
+COMMANDS = {}
+LEAGUES = {"BSA": "Brazilian Seria A",
+           "PL": "English Premier League",
+           "ELC": "English Championship",
+           "UCL": "UEFA Champions League",
+           "EC": "European Championship",
+           "FL1": "French League One",
+           "BL1": "German Bundesliga",
+           "SA": "Italian Seria A",
+           "DED": "Dutch Eredivisie",
+           "PPL": "Portugal Premier League",
+           "CLI": "Copa Libertadores",
+           "PD": "Spanish Primiera Division",
+           "WC": "FIFA World Cup",
+           }
+COVERAGE = {"Brazil": "BRA",
+            "England": "ENG",
+            "Europe": "EUR",
+            "France": "FRA",
+            "Germany": "DEU",
+            "Italy": "ITA",
+            "Netherlands": "NLD",
+            "Portugal": "POR",
+            "South America": "SAM",
+            "Spain": "ESP",
+            "World": "INT"
+            }

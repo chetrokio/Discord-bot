@@ -81,6 +81,10 @@ def fetch_today_matches_by_club_name(club_name):
         return []
 
 
+def sort_by_competition():
+    pass
+
+
 def check_league(match_code):
     if match_code == "BSA":
         return f"Competition: :flag_br:"

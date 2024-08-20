@@ -12,26 +12,12 @@ def init_db():
         CREATE TABLE IF NOT EXISTS user_preferences (
             user_id INTEGER PRIMARY KEY,
             followed_club TEXT,
-            notification BOOLEAN
+            notification BOOLEAN,
+            notif_time FLOAT DEFAULT 13.0
             PRIMARY KEY (user_id, followed_club)
         )
         ''')
 
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS commands (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            command_name TEXT,
-            description TEXT
-        )
-        ''')
-
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS leagues (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            country TEXT,
-            league_name TEXT
-        )
-        ''')
 
 
         conn.commit()

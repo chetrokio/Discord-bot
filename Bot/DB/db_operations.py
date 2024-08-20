@@ -85,24 +85,3 @@ def set_notification(id, command, team=""):
         print(f"An error has occurred: {e}")
     finally:
         conn.close()
-
-
-def show_coverage():
-    conn = sqlite3.connect(DATABASE_FILE)
-    c = conn.cursor()
-    c.execute('''SELECT league_name FROM leagues''')
-    rows = c.fetchall()
-    conn.close()
-    leagues = [row[0] for row in rows]
-    return leagues
-
-
-def fetch_all_help_commands():
-    conn = sqlite3.connect(DATABASE_FILE)
-    c = conn.cursor()
-    c.execute('''SELECT command_name, description FROM commands''')
-    rows = c.fetchall()
-    conn.close()
-    commands = [row[0] for row in rows]
-    descriptions = [row[1] for row in rows]
-    return commands, descriptions

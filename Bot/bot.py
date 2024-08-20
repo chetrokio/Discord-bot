@@ -160,16 +160,14 @@ async def today_results(ctx, competition=None):
             if competition:
                 embed.description = f"Competition: {competition}"
 
-            for match in matches[:25]:
+            for match in matches:
                 home_team = match["homeTeam"]["name"]
                 away_team = match["awayTeam"]["name"]
                 home_score = match["score"]["fullTime"]["home"]
                 away_score = match["score"]["fullTime"]["away"]
-                home_team_short = (home_team[:12] + '...') if len(home_team) > 12 else home_team
-                away_team_short = (away_team[:12] + '...') if len(away_team) > 12 else away_team
 
-                match_result = f"{home_team_short} {home_score} - {away_score} {away_team_short}"
-                embed.add_field(name=match_result[:25], value=f"Time: {match['utcDate'][:19]}", inline=False)
+                match_result = f"**{home_team}** {home_score} - {away_score} **{away_team}**"
+                embed.add_field(name=match_result, value=f"Time: {match['utcDate'][:19]}", inline=False)
 
             await ctx.send(embed=embed)
 
@@ -185,6 +183,7 @@ async def today_results(ctx, competition=None):
 async def show_today_matches(ctx):
     matches = ut.fetch_matches()
     if matches:
+        embeds = []
         embed = discord.Embed(title="Today's Matches")
         for match in matches:
             competition = match['competition']['name']
@@ -196,7 +195,9 @@ async def show_today_matches(ctx):
             embed.add_field(name=f" :soccer: {home_team} vs {away_team} :soccer: ".center(20),
                             value=competition_value.center(20),
                             inline=False)
-        await ctx.send(embed=embed)
+            embeds.append(embed)
+        for embed in embeds:
+            await ctx.send(embed=embed)
     else:
         await ctx.send("No matches found for today.")
 
@@ -246,9 +247,6 @@ async def follow_club(ctx, *, club):
     except Exception as e:
         await ctx.send(f"An error has occurred {e}")
         logging.exception(f"{e}")
-
-
-
 
 
 @bot.command(name="nextmatch")
@@ -315,21 +313,17 @@ async def notification(ctx, command, team=""):
 
 @bot.command(name="coverage")
 async def coverage(ctx):
-    league_names = db.show_coverage()
-    if league_names:
-        await ctx.send("\n".join(league_names))
-    else:
-        await ctx.send("No leagues found in the database")
+    pass
 
 
 @bot.command(name="commands")
 async def help_command(ctx):
-    commands_name, description = db.fetch_all_help_commands()
-    if commands_name and description:
-        help_text = "\n".join(f"**{cmd}**: {desc}" for cmd, desc in zip(commands_name, description))
-        await ctx.send(f"{help_text}")
-    else:
-        await ctx.send("No help commands found")
+    pass
+
+
+@bot.command(name="codes")
+async def codes(ctx):
+    pass
 
 
 async def main():

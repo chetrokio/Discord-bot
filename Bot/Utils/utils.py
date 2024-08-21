@@ -86,25 +86,23 @@ def sort_by_competition():
 
 
 def check_league(match_code):
-    if match_code == "BSA":
-        return f"Competition: :flag_br:"
-    elif match_code == "PL" or match_code == "ELC":
-        return f"Competition: :england:"
-    elif match_code == "CL":
-        return f"Competition: :flag_eu:"
-    elif match_code == "PPL":
-        return f"Competition: :flag_pt:"
-    elif match_code == "DED":
-        return f"Competition: :flag_nl:"
-    elif match_code == "Bl1":
-        return f"Competition: :flag_de:"
-    elif match_code == "FL":
-        return f"Competition: :flag_fr:"
-    elif match_code == "SA":
-        return f"Competition: :flag_it:"
-    elif match_code == "PD":
-        return f"Competition: :flag_es:"
-    elif match_code == "EC":
-        return f"Competition: :flag_eu:"
+    if match_code == "BSA" or match_code == "BRA":
+        return f":flag_br:"
+    elif match_code == "PL" or match_code == "ELC" or match_code == "ENG":
+        return f":england:"
+    elif match_code == "UCL" or match_code == "EC" or match_code == "EUR":
+        return f":flag_eu:"
+    elif match_code == "PPL" or match_code == "POR":
+        return f":flag_pt:"
+    elif match_code == "DED" or match_code == "NLD":
+        return f":flag_nl:"
+    elif match_code == "BL1" or match_code == "DEU":
+        return f":flag_de:"
+    elif match_code == "FL1" or match_code == "FRA":
+        return f":flag_fr:"
+    elif match_code == "SA" or match_code == "ITA":
+        return f":flag_it:"
+    elif match_code == "PD" or match_code == "ESP":
+        return f":flag_es:"
     else:
-        return f"Competition: :earth_africa:"
+        return f":earth_africa:"

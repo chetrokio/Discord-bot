@@ -192,7 +192,7 @@ async def show_today_matches(ctx):
             away_team = match['awayTeam']['name']
             match_time = match['utcDate']
             match_time_cest = ut.convert_to_cest(match_time)
-            competition_value = ut.check_league(match['competition']['code']) + f" {competition}\n {match_time_cest}"
+            competition_value = "Competition: " + ut.check_league(match['competition']['code']) + f" {competition}\n {match_time_cest}"
             embed.add_field(name=f" :soccer: {home_team} vs {away_team} :soccer: ".center(20),
                             value=competition_value.center(20),
                             inline=False)
@@ -343,7 +343,11 @@ async def notification(ctx, command, team=""):
 
 @bot.command(name="coverage")
 async def coverage(ctx):
-    pass
+    data = f""
+    for key, value in dt.COVERAGE.items():
+        data += f"{ut.check_league(value)} **{key}** - *{value}*\n"
+    await ctx.send(f"**Supported Countries:**\n\n{data}\n\n"
+                   f"Check `!codes` to see supported leagues!")
 
 
 @bot.command(name="commands")
@@ -353,7 +357,10 @@ async def help_command(ctx):
 
 @bot.command(name="codes")
 async def codes(ctx):
-    pass
+    data = f""
+    for key, value in dt.LEAGUES.items():
+        data += f"{ut.check_league(key)} **{key}** - *{value}*\n"
+    await ctx.send(f"**Supported League Codes:**\n\n{data}")
 
 
 async def main():

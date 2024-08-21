@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 from DB import db_operations as db
 from Utils import utils as ut
+from Utils import data as dt
 from datetime import time, date
 import logging
 
@@ -225,13 +226,42 @@ async def show_matches(ctx, day):
 async def league_table(ctx, league):
     if not league:
         ctx.send("You must provide league")
-    params = {
-        "competition": league
-    }
+        return
+    if league not in dt.LEAGUES.keys():
+        ctx.send("Invalid league code. Use the **!codes** command to see supported leagues.")
+        await ctx.invoke(bot.get_command("codes"))
+        return
     try:
-        pass
+        response = requests.get(f"{FOOTBALL_URL}/competitions/{league}/standings", headers=HEADERS)
+        data = response.json()
+        if response.status_code == 200:
+            standings = data.get("standings", [])
+            if not standings:
+                await ctx.send(f"No standings data found for league {league}.")
+                return
+            table_message = f"**{dt.LEAGUES[league]} League Table:**\n\n"
+            table_message += "```"
+            table_message += f"{'Pos':<4} {'Team':<20} {'MP':<3}{'W':<3}{'D':<3}{'L':<3}{'GF':<4}{'GA':<4}{'Pts':<4}\n"
+            table_message += "-" * 50 + "\n"
+
+            for standing in standings[0]["table"]:
+                position = standing.get('position')
+                team_name = standing['team']['name'][:20]
+                played_games = standing.get('playedGames')
+                won = standing.get('won')
+                draw = standing.get('draw')
+                lost = standing.get('lost')
+                goals_for = standing.get('goalsFor')
+                goals_against = standing.get('goalsAgainst')
+                points = standing.get('points')
+
+                table_message += f"{position:<4}{team_name:<20}  {played_games:<3}{won:<3}{draw:<3}{lost:<3}" \
+                                 f"{goals_for:<3} {goals_against:<3} {points:<4}\n"
+
+            table_message += "```"
+            await ctx.send(table_message)
     except Exception as e:
-        pass
+        logging.exception(f"An error occurred while trying to show league table: {e}")
 
 
 @bot.command(name="follow")
